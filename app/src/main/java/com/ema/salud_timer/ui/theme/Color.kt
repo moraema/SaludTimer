@@ -2,10 +2,20 @@ package com.ema.salud_timer.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Paleta de colores oscuros y neón
+val PrimaryDark = Color(0xFF121212)
+val SurfaceDark = Color(0xFF1E1E1E)
+val BackgroundDark = Color(0xFF080808)
+val CardDark = Color(0xFF252525)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Colores de acento
+val AccentBlue = Color(0xFF4285F4)
+val AccentLightBlue = Color(0xFF70A7FF)
+val AccentTeal = Color(0xFF03DAC6)
+val AccentRed = Color(0xFFFF4E4E)
+val TextWhite = Color(0xFFF0F0F0)
+val TextGray = Color(0xFFAAAAAA)
+
+// Estado de medicamentos
+val MedicineActive = Color(0xFF4CAF50)
+val MedicineInactive = Color(0xFF9E9E9E)
