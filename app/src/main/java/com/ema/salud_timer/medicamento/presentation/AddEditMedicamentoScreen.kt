@@ -1,7 +1,8 @@
 package com.ema.salud_timer.medicamento.presentation
 
-import android.util.Log
-import androidx.compose.foundation.background
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,10 +16,66 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import java.text.SimpleDateFormat
 import java.util.*
+
+// Función para mostrar el DatePicker nativo (fuera de la función composable)
+private fun showNativeDatePicker(
+    context: Context,
+    initialDate: Date,
+    onDateSelected: (Date) -> Unit
+) {
+    val calendar = Calendar.getInstance().apply {
+        time = initialDate
+    }
+
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            val resultCalendar = Calendar.getInstance()
+            resultCalendar.set(year, month, dayOfMonth)
+            onDateSelected(resultCalendar.time)
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    )
+
+    datePickerDialog.show()
+}
+
+// Función para mostrar el TimePicker nativo (fuera de la función composable)
+private fun showNativeTimePicker(
+    context: Context,
+    initialTime: String?,
+    onTimeSelected: (String) -> Unit
+) {
+    val calendar = Calendar.getInstance()
+
+    // Parsear el tiempo inicial si existe
+    if (initialTime != null && initialTime.matches(Regex("\\d{2}:\\d{2}"))) {
+        val parts = initialTime.split(":")
+        calendar.set(Calendar.HOUR_OF_DAY, parts[0].toInt())
+        calendar.set(Calendar.MINUTE, parts[1].toInt())
+    }
+
+    val timePickerDialog = TimePickerDialog(
+        context,
+        { _, hourOfDay, minute ->
+            val formattedTime = String.format("%02d:%02d", hourOfDay, minute)
+            onTimeSelected(formattedTime)
+        },
+        calendar.get(Calendar.HOUR_OF_DAY),
+        calendar.get(Calendar.MINUTE),
+        true // Formato 24 horas
+    )
+
+    timePickerDialog.show()
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,28 +87,33 @@ fun AddEditMedicamentoScreen(
 ) {
     val nombre by viewModel.nombre.collectAsState()
     val descripcion by viewModel.descripcion.collectAsState()
+    val tipoMedicamento by viewModel.tipoMedicamento.collectAsState()
     val dosis by viewModel.dosis.collectAsState()
-    val frecuencia by viewModel.frecuencia.collectAsState()
+    val tipoFrecuencia by viewModel.tipoFrecuencia.collectAsState()
     val horaInicio by viewModel.horaInicio.collectAsState()
     val horaFija by viewModel.horaFija.collectAsState()
     val intervaloHoras by viewModel.intervaloHoras.collectAsState()
     val selectedDays by viewModel.selectedDays.collectAsState()
+    val fechaInicio by viewModel.fechaInicio.collectAsState()
+    val fechaFin by viewModel.fechaFin.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val saveSuccess by viewModel.saveSuccess.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    val frecuenciaOptions = listOf("Cada X horas", "Hora fija", "Días específicos")
+    val context = LocalContext.current
+    val tiposMedicamento = listOf("pastilla", "jarabe")
+    val tiposFrecuencia = listOf("hora_fija", "intervalo")
     val diasSemana = listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
 
-    val showTimePicker = remember { mutableStateOf(false) }
-    val timePickerFor = remember { mutableStateOf("") }
+    // Formatear fechas
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    val fechaInicioFormateada = remember(fechaInicio) { dateFormat.format(fechaInicio) }
+    val fechaFinFormateada = remember(fechaFin) { fechaFin?.let { dateFormat.format(it) } ?: "No definida" }
 
     // Efecto para navegar hacia atrás cuando se guarda con éxito
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
             onNavigateBack()
-            Log.e("AddEditMedicamentoScreen", "¡Ambos ID son nulos! personaId=$personaId, medicamentoId=$medicamentoId")
-
         }
     }
 
@@ -100,7 +162,14 @@ fun AddEditMedicamentoScreen(
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                // Campos de formulario
+                // Información básica del medicamento
+                Text(
+                    "Información del medicamento",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 OutlinedTextField(
                     value = nombre,
                     onValueChange = { viewModel.onNombreChange(it) },
@@ -123,107 +192,164 @@ fun AddEditMedicamentoScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = dosis,
-                    onValueChange = { viewModel.onDosisChange(it) },
-                    label = { Text("Dosis") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    singleLine = true
-                )
+                // Tipo de medicamento (pastilla o jarabe)
+                Text("Tipo de medicamento", style = MaterialTheme.typography.bodyLarge)
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    "Horario y frecuencia",
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Selector de tipo de frecuencia
-                ExposedDropdownMenuBox(
-                    expanded = false,
-                    onExpandedChange = { /* Para mantener simple este ejemplo, no implementamos la lógica completa */ }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
-                        value = frecuencia,
-                        onValueChange = {},
-                        readOnly = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(),
-                        label = { Text("Tipo de frecuencia") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = false)
-                        }
-                    )
-
-                    ExposedDropdownMenu(
-                        expanded = false,
-                        onDismissRequest = {}
-                    ) {
-                        frecuenciaOptions.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option) },
-                                onClick = {
-                                    viewModel.onFrecuenciaChange(option)
-                                },
-                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                            )
-                        }
+                    tiposMedicamento.forEach { tipo ->
+                        FilterChip(
+                            selected = tipoMedicamento == tipo,
+                            onClick = { viewModel.onTipoMedicamentoChange(tipo) },
+                            label = {
+                                Text(if (tipo == "pastilla") "Pastilla" else "Jarabe")
+                            }
+                        )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Campos específicos según el tipo de frecuencia
-                when (frecuencia) {
-                    "Cada X horas" -> {
-                        // Intervalo de horas
-                        OutlinedTextField(
-                            value = intervaloHoras,
-                            onValueChange = { viewModel.onIntervaloHorasChange(it) },
-                            label = { Text("Cantidad de horas") },
-                            modifier = Modifier.fillMaxWidth(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
+                // Campo de dosis con el formato adecuado según el tipo
+                OutlinedTextField(
+                    value = dosis,
+                    onValueChange = { viewModel.onDosisChange(it) },
+                    label = {
+                        Text(
+                            if (tipoMedicamento == "pastilla") "Dosis (cantidad de pastillas)"
+                            else "Dosis (ml)"
                         )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Hora de inicio
-                        OutlinedTextField(
-                            value = horaInicio ?: "",
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Hora de inicio") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    timePickerFor.value = "inicio"
-                                    showTimePicker.value = true
-                                },
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Schedule,
-                                    contentDescription = "Seleccionar hora"
-                                )
-                            }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    trailingIcon = {
+                        Text(
+                            if (tipoMedicamento == "pastilla") "pastillas" else "ml",
+                            modifier = Modifier.padding(end = 16.dp)
                         )
                     }
-                    "Hora fija" -> {
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Fechas de inicio y finalización
+                Text(
+                    "Período de medicación",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = fechaInicioFormateada,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Fecha de inicio") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            showNativeDatePicker(
+                                context = context,
+                                initialDate = fechaInicio,
+                                onDateSelected = { selectedDate ->
+                                    viewModel.onFechaInicioChange(selectedDate)
+                                }
+                            )
+                        },
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.CalendarMonth,
+                            contentDescription = "Seleccionar fecha"
+                        )
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = fechaFinFormateada,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Fecha de finalización (opcional)") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            showNativeDatePicker(
+                                context = context,
+                                initialDate = fechaFin ?: Calendar.getInstance().apply {
+                                    add(Calendar.DAY_OF_YEAR, 7)
+                                }.time,
+                                onDateSelected = { selectedDate ->
+                                    viewModel.onFechaFinChange(selectedDate)
+                                }
+                            )
+                        },
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.CalendarMonth,
+                            contentDescription = "Seleccionar fecha"
+                        )
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Horario y frecuencia
+                Text(
+                    "Horario y frecuencia",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Tipo de frecuencia (hora fija o intervalo)
+                Text("¿Cómo debe tomarse?", style = MaterialTheme.typography.bodyLarge)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    FilterChip(
+                        selected = tipoFrecuencia == "hora_fija",
+                        onClick = { viewModel.onTipoFrecuenciaChange("hora_fija") },
+                        label = { Text("A una hora fija") }
+                    )
+
+                    FilterChip(
+                        selected = tipoFrecuencia == "intervalo",
+                        onClick = { viewModel.onTipoFrecuenciaChange("intervalo") },
+                        label = { Text("En intervalos") }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Campos específicos según el tipo de frecuencia
+                when (tipoFrecuencia) {
+                    "hora_fija" -> {
                         // Hora fija
                         OutlinedTextField(
                             value = horaFija ?: "",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Hora fija diaria") },
+                            label = { Text("Hora de toma diaria") },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    timePickerFor.value = "fija"
-                                    showTimePicker.value = true
+                                    showNativeTimePicker(
+                                        context = context,
+                                        initialTime = horaFija,
+                                        onTimeSelected = { selectedTime ->
+                                            viewModel.onHoraFijaChange(selectedTime)
+                                        }
+                                    )
                                 },
                             trailingIcon = {
                                 Icon(
@@ -232,11 +358,12 @@ fun AddEditMedicamentoScreen(
                                 )
                             }
                         )
-                    }
-                    "Días específicos" -> {
-                        // Días de la semana
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Selección de días (opcional)
                         Text(
-                            "Seleccione los días",
+                            "Días específicos (opcional)",
                             style = MaterialTheme.typography.bodyLarge
                         )
 
@@ -258,20 +385,42 @@ fun AddEditMedicamentoScreen(
                                 )
                             }
                         }
+                    }
+                    "intervalo" -> {
+                        // Intervalo de horas
+                        OutlinedTextField(
+                            value = intervaloHoras,
+                            onValueChange = { viewModel.onIntervaloHorasChange(it) },
+                            label = { Text("Cada cuántas horas") },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            trailingIcon = {
+                                Text(
+                                    "horas",
+                                    modifier = Modifier.padding(end = 16.dp)
+                                )
+                            }
+                        )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Hora fija para los días seleccionados
+                        // Hora de inicio
                         OutlinedTextField(
-                            value = horaFija ?: "",
+                            value = horaInicio ?: "",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Hora en días seleccionados") },
+                            label = { Text("Hora de la primera toma") },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    timePickerFor.value = "fija"
-                                    showTimePicker.value = true
+                                    showNativeTimePicker(
+                                        context = context,
+                                        initialTime = horaInicio,
+                                        onTimeSelected = { selectedTime ->
+                                            viewModel.onHoraInicioChange(selectedTime)
+                                        }
+                                    )
                                 },
                             trailingIcon = {
                                 Icon(
@@ -302,41 +451,9 @@ fun AddEditMedicamentoScreen(
                         Text("Guardar medicamento")
                     }
                 }
+
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
-    }
-
-    // Esto sería un TimePickerDialog pero por simplicidad no lo implemento completamente
-    if (showTimePicker.value) {
-        // Implementar diálogo de selección de hora
-        // Este es un placeholder simplificado
-        AlertDialog(
-            onDismissRequest = { showTimePicker.value = false },
-            title = { Text("Seleccionar hora") },
-            text = {
-                Text("Aquí iría el selector de hora")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        // Simular selección de hora
-                        val horaSeleccionada = "08:00"
-                        if (timePickerFor.value == "inicio") {
-                            viewModel.onHoraInicioChange(horaSeleccionada)
-                        } else {
-                            viewModel.onHoraFijaChange(horaSeleccionada)
-                        }
-                        showTimePicker.value = false
-                    }
-                ) {
-                    Text("Aceptar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker.value = false }) {
-                    Text("Cancelar")
-                }
-            }
-        )
     }
 }

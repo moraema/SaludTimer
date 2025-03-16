@@ -12,7 +12,7 @@ import com.ema.salud_timer.persona.data.model.PersonaEntity
 
 @Database(
     entities = [PersonaEntity::class, MedicamentoEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

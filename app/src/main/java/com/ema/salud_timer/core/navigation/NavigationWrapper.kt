@@ -107,12 +107,10 @@ fun NavigationWrapper() {
             PersonaMedicamentosScreen(
                 personaId = personaId,
                 onAddMedicamento = {
-                    // Navegar a pantalla para agregar medicamento
                     navController.navigate("${Screens.ADD_MEDICAMENTO}/$personaId")
                 },
-                onEditMedicamento = { medicamentoId ->
-                    // Navegar para editar medicamento
-                    navController.navigate("${Screens.EDIT_MEDICAMENTO}/$medicamentoId")
+                onEditMedicamento = { medicamentoId, personaId ->
+                    navController.navigate("${Screens.EDIT_MEDICAMENTO}/$medicamentoId/$personaId")
                 },
                 onNavigateBack = {
                     navController.navigateUp()
@@ -135,7 +133,6 @@ fun NavigationWrapper() {
         }
 
         // Editar medicamento
-        // En NavigationWrapper.kt
         composable(
             route = "${Screens.EDIT_MEDICAMENTO}/{medicamentoId}/{personaId}",
             arguments = listOf(

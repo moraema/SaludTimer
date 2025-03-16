@@ -21,10 +21,12 @@ class MedicamentoUseCase @Inject constructor(private val repository: Medicamento
         id: Int = 0,
         nombre: String,
         descripcion: String,
+        tipoMedicamento: String,
         dosis: String,
         frecuencia: String,
         horaInicio: String? = null,
         horaFija: String? = null,
+        intervaloHoras: Int? = null,
         diasSemana: String? = null,
         fechaInicio: Date,
         fechaFin: Date? = null,
@@ -34,19 +36,15 @@ class MedicamentoUseCase @Inject constructor(private val repository: Medicamento
         // Validaciones
         require(nombre.isNotBlank()) { "El nombre no puede estar vacío" }
         require(dosis.isNotBlank()) { "La dosis no puede estar vacía" }
-        require(frecuencia.isNotBlank()) { "La frecuencia no puede estar vacía" }
 
         // Validación específica según el tipo de frecuencia
         when (frecuencia) {
-            "Cada X horas" -> {
-                require(horaInicio != null) { "La hora de inicio es requerida para frecuencia por horas" }
+            "intervalo" -> {
+                require(intervaloHoras != null && intervaloHoras > 0) { "El intervalo de horas debe ser mayor a 0" }
+                require(horaInicio != null) { "La hora de inicio es requerida para frecuencia por intervalos" }
             }
-            "Hora fija" -> {
+            "hora_fija" -> {
                 require(horaFija != null) { "La hora fija es requerida para este tipo de frecuencia" }
-            }
-            "Días específicos" -> {
-                require(!diasSemana.isNullOrBlank()) { "Debes seleccionar al menos un día de la semana" }
-                require(horaFija != null) { "La hora fija es requerida para días específicos" }
             }
         }
 
@@ -54,10 +52,12 @@ class MedicamentoUseCase @Inject constructor(private val repository: Medicamento
             id = id,
             nombre = nombre,
             descripcion = descripcion,
+            tipoMedicamento = tipoMedicamento,
             dosis = dosis,
             frecuencia = frecuencia,
             horaInicio = horaInicio,
             horaFija = horaFija,
+            intervaloHoras = intervaloHoras,
             diasSemana = diasSemana,
             fechaInicio = fechaInicio,
             fechaFin = fechaFin,

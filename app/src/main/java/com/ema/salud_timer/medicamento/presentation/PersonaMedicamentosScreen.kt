@@ -35,7 +35,7 @@ import java.util.*
 fun PersonaMedicamentosScreen(
     personaId: Int,
     onAddMedicamento: () -> Unit,
-    onEditMedicamento: (Int) -> Unit,
+    onEditMedicamento: (Int, Int) -> Unit,
     onNavigateBack: () -> Unit,
     viewModel: MedicamentoViewModel = hiltViewModel()
 ) {
@@ -156,7 +156,7 @@ fun PersonaMedicamentosScreen(
                     items(medicamentos) { medicamento ->
                         MedicamentoItem(
                             medicamento = medicamento,
-                            onMedicamentoClick = { onEditMedicamento(medicamento.id) },
+                            onMedicamentoClick = { onEditMedicamento(medicamento.id, personaId) },
                             onToggleActive = { active ->
                                 viewModel.toggleMedicamentoActivo(medicamento.id, active)
                             }

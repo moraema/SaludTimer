@@ -24,11 +24,13 @@ data class MedicamentoEntity(
     val id: Int = 0,
     val nombre: String,
     val descripcion: String,
+    val tipoMedicamento: String, // "jarabe" o "pastilla"
     val dosis: String,
-    val frecuencia: String,
+    val frecuencia: String, // "hora_fija" o "intervalo"
     val horaInicio: String? = null,
     val horaFija: String? = null,
-    val diasSemana: String? = null, // "Lunes,Miércoles,Viernes"
+    val intervaloHoras: Int? = null,
+    val diasSemana: String? = null,
     val fechaInicio: Date,
     val fechaFin: Date? = null,
     val personaId: Int,

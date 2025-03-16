@@ -55,11 +55,16 @@ class MedicamentoViewModel @Inject constructor(
     private val _descripcion = MutableStateFlow("")
     val descripcion: StateFlow<String> = _descripcion
 
+    // Tipo de medicamento (pastilla o jarabe)
+    private val _tipoMedicamento = MutableStateFlow("pastilla")
+    val tipoMedicamento: StateFlow<String> = _tipoMedicamento
+
     private val _dosis = MutableStateFlow("")
     val dosis: StateFlow<String> = _dosis
 
-    private val _frecuencia = MutableStateFlow("Cada X horas")
-    val frecuencia: StateFlow<String> = _frecuencia
+    // Tipo de frecuencia (hora_fija o intervalo)
+    private val _tipoFrecuencia = MutableStateFlow("hora_fija")
+    val tipoFrecuencia: StateFlow<String> = _tipoFrecuencia
 
     private val _horaInicio = MutableStateFlow<String?>(null)
     val horaInicio: StateFlow<String?> = _horaInicio
@@ -94,7 +99,6 @@ class MedicamentoViewModel @Inject constructor(
         loadData()
     }
 
-    // Parte crítica de MedicamentoViewModel.kt
     private fun loadData() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -105,11 +109,15 @@ class MedicamentoViewModel @Inject constructor(
                     personaUseCase.getPersonaById(id)
                         .catch { e ->
                             _error.value = "Error al cargar datos de persona: ${e.message}"
-                            _isLoading.value = false // Importante terminar la carga en caso de error
+                            _isLoading.value = false
                         }
                         .collect { persona ->
                             _persona.value = persona
-                            _isLoading.value = false // Importante terminar la carga cuando se completa
+
+                            // Cargar datos del medicamento si existe ID
+                            loadMedicamento()
+
+                            _isLoading.value = false
                         }
                 } ?: run {
                     // Si personaId es null, finalizar la carga
@@ -123,6 +131,45 @@ class MedicamentoViewModel @Inject constructor(
         }
     }
 
+    private fun loadMedicamento() {
+        medicamentoId?.let { id ->
+            viewModelScope.launch {
+                try {
+                    medicamentoUseCase.getMedicamentoById(id)
+                        .collect { medicamento ->
+                            // Cargar datos básicos del medicamento
+                            _nombre.value = medicamento.nombre
+                            _descripcion.value = medicamento.descripcion
+                            _tipoMedicamento.value = medicamento.tipoMedicamento ?: "pastilla"
+                            _dosis.value = medicamento.dosis
+
+                            // Cargar tipo de frecuencia
+                            _tipoFrecuencia.value = medicamento.frecuencia
+
+                            // Cargar datos específicos según el tipo de frecuencia
+                            if (_tipoFrecuencia.value == "intervalo") {
+                                _intervaloHoras.value = medicamento.intervaloHoras?.toString() ?: "8"
+                                _horaInicio.value = medicamento.horaInicio
+                            } else {
+                                _horaFija.value = medicamento.horaFija
+
+                                // Cargar días seleccionados si existen
+                                medicamento.diasSemana?.let { dias ->
+                                    _selectedDays.value = dias.split(",")
+                                }
+                            }
+
+                            // Cargar fechas
+                            _fechaInicio.value = medicamento.fechaInicio
+                            _fechaFin.value = medicamento.fechaFin
+                        }
+                } catch (e: Exception) {
+                    _error.value = "Error al cargar medicamento: ${e.message}"
+                }
+            }
+        }
+    }
+
     fun onNombreChange(value: String) {
         _nombre.value = value
     }
@@ -131,48 +178,42 @@ class MedicamentoViewModel @Inject constructor(
         _descripcion.value = value
     }
 
+    fun onTipoMedicamentoChange(value: String) {
+        _tipoMedicamento.value = value
+    }
+
     fun onDosisChange(value: String) {
         _dosis.value = value
     }
 
-    fun onFrecuenciaChange(value: String) {
-        _frecuencia.value = value
+    fun onTipoFrecuenciaChange(value: String) {
+        _tipoFrecuencia.value = value
 
         // Resetear campos específicos según el tipo de frecuencia
-        when (value) {
-            "Cada X horas" -> {
-                _horaFija.value = null
-                _selectedDays.value = emptyList()
+        if (value == "hora_fija") {
+            _intervaloHoras.value = ""
+            _horaInicio.value = null
 
-                // Establecer hora de inicio por defecto si está vacía
-                if (_horaInicio.value == null) {
-                    val calendar = Calendar.getInstance()
-                    _horaInicio.value = dateFormat.format(calendar.time)
-                }
+            // Establecer hora fija por defecto si está vacía
+            if (_horaFija.value == null) {
+                val calendar = Calendar.getInstance()
+                calendar.add(Calendar.HOUR_OF_DAY, 1)
+                calendar.set(Calendar.MINUTE, 0)
+                _horaFija.value = dateFormat.format(calendar.time)
             }
-            "Hora fija" -> {
-                _intervaloHoras.value = "8"
-                _selectedDays.value = emptyList()
+        } else { // intervalo
+            _horaFija.value = null
+            _selectedDays.value = emptyList()
 
-                // Establecer hora fija por defecto si está vacía
-                if (_horaFija.value == null) {
-                    val calendar = Calendar.getInstance()
-                    calendar.add(Calendar.HOUR_OF_DAY, 1) // Próxima hora
-                    calendar.set(Calendar.MINUTE, 0)
-                    _horaFija.value = dateFormat.format(calendar.time)
-                }
+            // Valores por defecto para intervalos
+            if (_intervaloHoras.value.isEmpty()) {
+                _intervaloHoras.value = "8"
             }
-            "Días específicos" -> {
-                _intervaloHoras.value = "8"
-                _horaInicio.value = null
 
-                // Establecer hora fija por defecto si está vacía
-                if (_horaFija.value == null) {
-                    val calendar = Calendar.getInstance()
-                    calendar.add(Calendar.HOUR_OF_DAY, 1)
-                    calendar.set(Calendar.MINUTE, 0)
-                    _horaFija.value = dateFormat.format(calendar.time)
-                }
+            // Establecer hora de inicio por defecto si está vacía
+            if (_horaInicio.value == null) {
+                val calendar = Calendar.getInstance()
+                _horaInicio.value = dateFormat.format(calendar.time)
             }
         }
     }
@@ -229,15 +270,23 @@ class MedicamentoViewModel @Inject constructor(
                     null
                 }
 
+                val intervaloHorasValue = if (_tipoFrecuencia.value == "intervalo") {
+                    _intervaloHoras.value.toIntOrNull()
+                } else {
+                    null
+                }
+
                 val result = medicamentoUseCase.saveMedicamento(
                     id = medicamentoId ?: 0,
                     nombre = _nombre.value,
                     descripcion = _descripcion.value,
+                    tipoMedicamento = _tipoMedicamento.value,
                     dosis = _dosis.value,
-                    frecuencia = if (_frecuencia.value == "Cada X horas") "Cada ${_intervaloHoras.value} horas" else _frecuencia.value,
-                    horaInicio = _horaInicio.value,
-                    horaFija = _horaFija.value,
-                    diasSemana = diasSemanaValue,
+                    frecuencia = _tipoFrecuencia.value,
+                    horaInicio = if (_tipoFrecuencia.value == "intervalo") _horaInicio.value else null,
+                    horaFija = if (_tipoFrecuencia.value == "hora_fija") _horaFija.value else null,
+                    intervaloHoras = intervaloHorasValue,
+                    diasSemana = if (_tipoFrecuencia.value == "hora_fija") diasSemanaValue else null,
                     fechaInicio = _fechaInicio.value,
                     fechaFin = _fechaFin.value,
                     personaId = personaIdValue
