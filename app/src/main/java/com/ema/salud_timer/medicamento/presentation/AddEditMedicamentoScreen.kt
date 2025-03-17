@@ -2,7 +2,6 @@ package com.ema.salud_timer.medicamento.presentation
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,60 +21,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import java.text.SimpleDateFormat
 import java.util.*
-
-// Función para mostrar el DatePicker nativo (fuera de la función composable)
-private fun showNativeDatePicker(
-    context: Context,
-    initialDate: Date,
-    onDateSelected: (Date) -> Unit
-) {
-    val calendar = Calendar.getInstance().apply {
-        time = initialDate
-    }
-
-    val datePickerDialog = DatePickerDialog(
-        context,
-        { _, year, month, dayOfMonth ->
-            val resultCalendar = Calendar.getInstance()
-            resultCalendar.set(year, month, dayOfMonth)
-            onDateSelected(resultCalendar.time)
-        },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
-    )
-
-    datePickerDialog.show()
-}
-
-// Función para mostrar el TimePicker nativo (fuera de la función composable)
-private fun showNativeTimePicker(
-    context: Context,
-    initialTime: String?,
-    onTimeSelected: (String) -> Unit
-) {
-    val calendar = Calendar.getInstance()
-
-    // Parsear el tiempo inicial si existe
-    if (initialTime != null && initialTime.matches(Regex("\\d{2}:\\d{2}"))) {
-        val parts = initialTime.split(":")
-        calendar.set(Calendar.HOUR_OF_DAY, parts[0].toInt())
-        calendar.set(Calendar.MINUTE, parts[1].toInt())
-    }
-
-    val timePickerDialog = TimePickerDialog(
-        context,
-        { _, hourOfDay, minute ->
-            val formattedTime = String.format("%02d:%02d", hourOfDay, minute)
-            onTimeSelected(formattedTime)
-        },
-        calendar.get(Calendar.HOUR_OF_DAY),
-        calendar.get(Calendar.MINUTE),
-        true // Formato 24 horas
-    )
-
-    timePickerDialog.show()
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -253,13 +198,21 @@ fun AddEditMedicamentoScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            showNativeDatePicker(
-                                context = context,
-                                initialDate = fechaInicio,
-                                onDateSelected = { selectedDate ->
-                                    viewModel.onFechaInicioChange(selectedDate)
-                                }
-                            )
+                            // Usar DatePickerDialog directamente
+                            val calendar = Calendar.getInstance()
+                            calendar.time = fechaInicio
+
+                            DatePickerDialog(
+                                context,
+                                { _, year, month, dayOfMonth ->
+                                    val selectedCalendar = Calendar.getInstance()
+                                    selectedCalendar.set(year, month, dayOfMonth)
+                                    viewModel.onFechaInicioChange(selectedCalendar.time)
+                                },
+                                calendar.get(Calendar.YEAR),
+                                calendar.get(Calendar.MONTH),
+                                calendar.get(Calendar.DAY_OF_MONTH)
+                            ).show()
                         },
                     trailingIcon = {
                         Icon(
@@ -279,15 +232,25 @@ fun AddEditMedicamentoScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            showNativeDatePicker(
-                                context = context,
-                                initialDate = fechaFin ?: Calendar.getInstance().apply {
-                                    add(Calendar.DAY_OF_YEAR, 7)
-                                }.time,
-                                onDateSelected = { selectedDate ->
-                                    viewModel.onFechaFinChange(selectedDate)
-                                }
-                            )
+                            // Usar DatePickerDialog directamente
+                            val calendar = Calendar.getInstance()
+                            if (fechaFin != null) {
+                                calendar.time = fechaFin
+                            } else {
+                                calendar.add(Calendar.DAY_OF_YEAR, 7)
+                            }
+
+                            DatePickerDialog(
+                                context,
+                                { _, year, month, dayOfMonth ->
+                                    val selectedCalendar = Calendar.getInstance()
+                                    selectedCalendar.set(year, month, dayOfMonth)
+                                    viewModel.onFechaFinChange(selectedCalendar.time)
+                                },
+                                calendar.get(Calendar.YEAR),
+                                calendar.get(Calendar.MONTH),
+                                calendar.get(Calendar.DAY_OF_MONTH)
+                            ).show()
                         },
                     trailingIcon = {
                         Icon(
@@ -343,13 +306,24 @@ fun AddEditMedicamentoScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    showNativeTimePicker(
-                                        context = context,
-                                        initialTime = horaFija,
-                                        onTimeSelected = { selectedTime ->
-                                            viewModel.onHoraFijaChange(selectedTime)
-                                        }
-                                    )
+                                    // Usar TimePickerDialog directamente
+                                    val calendar = Calendar.getInstance()
+                                    if (horaFija != null && horaFija!!.matches(Regex("\\d{2}:\\d{2}"))) {
+                                        val parts = horaFija!!.split(":")
+                                        calendar.set(Calendar.HOUR_OF_DAY, parts[0].toInt())
+                                        calendar.set(Calendar.MINUTE, parts[1].toInt())
+                                    }
+
+                                    TimePickerDialog(
+                                        context,
+                                        { _, hourOfDay, minute ->
+                                            val formattedTime = String.format("%02d:%02d", hourOfDay, minute)
+                                            viewModel.onHoraFijaChange(formattedTime)
+                                        },
+                                        calendar.get(Calendar.HOUR_OF_DAY),
+                                        calendar.get(Calendar.MINUTE),
+                                        true // Formato 24 horas
+                                    ).show()
                                 },
                             trailingIcon = {
                                 Icon(
@@ -414,13 +388,24 @@ fun AddEditMedicamentoScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    showNativeTimePicker(
-                                        context = context,
-                                        initialTime = horaInicio,
-                                        onTimeSelected = { selectedTime ->
-                                            viewModel.onHoraInicioChange(selectedTime)
-                                        }
-                                    )
+                                    // Usar TimePickerDialog directamente
+                                    val calendar = Calendar.getInstance()
+                                    if (horaInicio != null && horaInicio!!.matches(Regex("\\d{2}:\\d{2}"))) {
+                                        val parts = horaInicio!!.split(":")
+                                        calendar.set(Calendar.HOUR_OF_DAY, parts[0].toInt())
+                                        calendar.set(Calendar.MINUTE, parts[1].toInt())
+                                    }
+
+                                    TimePickerDialog(
+                                        context,
+                                        { _, hourOfDay, minute ->
+                                            val formattedTime = String.format("%02d:%02d", hourOfDay, minute)
+                                            viewModel.onHoraInicioChange(formattedTime)
+                                        },
+                                        calendar.get(Calendar.HOUR_OF_DAY),
+                                        calendar.get(Calendar.MINUTE),
+                                        true // Formato 24 horas
+                                    ).show()
                                 },
                             trailingIcon = {
                                 Icon(
