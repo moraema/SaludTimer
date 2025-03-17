@@ -2,7 +2,10 @@ package com.ema.salud_timer.medicamento.presentation
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,9 +13,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -22,7 +29,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun AddEditMedicamentoScreen(
     medicamentoId: Int? = null,
@@ -195,32 +202,35 @@ fun AddEditMedicamentoScreen(
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Fecha de inicio") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            // Usar DatePickerDialog directamente
-                            val calendar = Calendar.getInstance()
-                            calendar.time = fechaInicio
-
-                            DatePickerDialog(
-                                context,
-                                { _, year, month, dayOfMonth ->
-                                    val selectedCalendar = Calendar.getInstance()
-                                    selectedCalendar.set(year, month, dayOfMonth)
-                                    viewModel.onFechaInicioChange(selectedCalendar.time)
-                                },
-                                calendar.get(Calendar.YEAR),
-                                calendar.get(Calendar.MONTH),
-                                calendar.get(Calendar.DAY_OF_MONTH)
-                            ).show()
-                        },
+                    modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.CalendarMonth,
-                            contentDescription = "Seleccionar fecha"
-                        )
+                        IconButton(
+                            onClick = {
+                                // Usar DatePickerDialog directamente
+                                val calendar = Calendar.getInstance()
+                                calendar.time = fechaInicio
+
+                                DatePickerDialog(
+                                    context,
+                                    { _, year, month, dayOfMonth ->
+                                        val selectedCalendar = Calendar.getInstance()
+                                        selectedCalendar.set(year, month, dayOfMonth)
+                                        viewModel.onFechaInicioChange(selectedCalendar.time)
+                                    },
+                                    calendar.get(Calendar.YEAR),
+                                    calendar.get(Calendar.MONTH),
+                                    calendar.get(Calendar.DAY_OF_MONTH)
+                                ).show()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CalendarMonth,
+                                contentDescription = "Seleccionar fecha"
+                            )
+                        }
                     }
                 )
+
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -230,33 +240,35 @@ fun AddEditMedicamentoScreen(
                     readOnly = true,
                     label = { Text("Fecha de finalización (opcional)") },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            // Usar DatePickerDialog directamente
-                            val calendar = Calendar.getInstance()
-                            if (fechaFin != null) {
-                                calendar.time = fechaFin
-                            } else {
-                                calendar.add(Calendar.DAY_OF_YEAR, 7)
-                            }
-
-                            DatePickerDialog(
-                                context,
-                                { _, year, month, dayOfMonth ->
-                                    val selectedCalendar = Calendar.getInstance()
-                                    selectedCalendar.set(year, month, dayOfMonth)
-                                    viewModel.onFechaFinChange(selectedCalendar.time)
-                                },
-                                calendar.get(Calendar.YEAR),
-                                calendar.get(Calendar.MONTH),
-                                calendar.get(Calendar.DAY_OF_MONTH)
-                            ).show()
-                        },
+                        .fillMaxWidth(),
                     trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.CalendarMonth,
-                            contentDescription = "Seleccionar fecha"
-                        )
+                       IconButton(
+                           onClick = {
+                               val calendar = Calendar.getInstance()
+                               if (fechaFin != null) {
+                                   calendar.time = fechaFin
+                               } else {
+                                   calendar.add(Calendar.DAY_OF_YEAR, 7)
+                               }
+
+                               DatePickerDialog(
+                                   context,
+                                   { _, year, month, dayOfMonth ->
+                                       val selectedCalendar = Calendar.getInstance()
+                                       selectedCalendar.set(year, month, dayOfMonth)
+                                       viewModel.onFechaFinChange(selectedCalendar.time)
+                                   },
+                                   calendar.get(Calendar.YEAR),
+                                   calendar.get(Calendar.MONTH),
+                                   calendar.get(Calendar.DAY_OF_MONTH)
+                               ).show()
+                           }
+                       ) {
+                           Icon(
+                               imageVector = Icons.Rounded.CalendarMonth,
+                               contentDescription = "Seleccionar fecha"
+                           )
+                       }
                     }
                 )
 
@@ -304,8 +316,9 @@ fun AddEditMedicamentoScreen(
                             readOnly = true,
                             label = { Text("Hora de toma diaria") },
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
+                                .fillMaxWidth(),
+                            trailingIcon = {
+                                IconButton(onClick = {
                                     // Usar TimePickerDialog directamente
                                     val calendar = Calendar.getInstance()
                                     if (horaFija != null && horaFija!!.matches(Regex("\\d{2}:\\d{2}"))) {
@@ -324,12 +337,12 @@ fun AddEditMedicamentoScreen(
                                         calendar.get(Calendar.MINUTE),
                                         true // Formato 24 horas
                                     ).show()
-                                },
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Schedule,
-                                    contentDescription = "Seleccionar hora"
-                                )
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Schedule,
+                                        contentDescription = "Selecionar hora"
+                                    )
+                                }
                             }
                         )
 
@@ -386,8 +399,9 @@ fun AddEditMedicamentoScreen(
                             readOnly = true,
                             label = { Text("Hora de la primera toma") },
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
+                                .fillMaxWidth(),
+                            trailingIcon = {
+                                IconButton(onClick = {
                                     // Usar TimePickerDialog directamente
                                     val calendar = Calendar.getInstance()
                                     if (horaInicio != null && horaInicio!!.matches(Regex("\\d{2}:\\d{2}"))) {
@@ -406,12 +420,12 @@ fun AddEditMedicamentoScreen(
                                         calendar.get(Calendar.MINUTE),
                                         true // Formato 24 horas
                                     ).show()
-                                },
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Schedule,
-                                    contentDescription = "Seleccionar hora"
-                                )
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Schedule,
+                                        contentDescription = "Seleccionar hora"
+                                    )
+                                }
                             }
                         )
                     }

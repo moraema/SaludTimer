@@ -2,6 +2,7 @@ package com.ema.salud_timer.di
 
 import android.content.Context
 import com.ema.salud_timer.core.database.AppDatabase
+import com.ema.salud_timer.core.services.AlarmService
 import com.ema.salud_timer.medicamento.data.repository.MedicamentoRepository
 import com.ema.salud_timer.medicamento.domain.MedicamentoUseCase
 import com.ema.salud_timer.persona.data.repository.PersonaRepository
@@ -38,13 +39,22 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideMedicamentoRepository(database: AppDatabase): MedicamentoRepository {
-        return MedicamentoRepository(database.medicamentoDao())
+    fun provideMedicamentoRepository(
+        database: AppDatabase,
+        alarmService: AlarmService
+    ): MedicamentoRepository {
+        return MedicamentoRepository(database.medicamentoDao(), alarmService)
     }
 
     @Provides
     @Singleton
     fun provideMedicamentoUseCase(repository: MedicamentoRepository): MedicamentoUseCase {
         return MedicamentoUseCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAlarmService(@ApplicationContext context: Context): AlarmService {
+        return AlarmService(context)
     }
 }

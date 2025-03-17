@@ -1,11 +1,17 @@
 package com.ema.salud_timer.medicamento.data.repository
 
+import android.content.Context
+import com.ema.salud_timer.core.services.AlarmService
 import com.ema.salud_timer.medicamento.data.datasource.MedicamentoDao
 import com.ema.salud_timer.medicamento.data.model.MedicamentoEntity
 import com.ema.salud_timer.medicamento.data.model.MedicamentoWithPersona
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
-class MedicamentoRepository(private val medicamentoDao: MedicamentoDao) {
+class MedicamentoRepository @Inject constructor(
+    private val medicamentoDao: MedicamentoDao,
+    private val alarmService: AlarmService
+) {
     fun getMedicamentosByPersonaId(personaId: Int): Flow<List<MedicamentoEntity>> =
         medicamentoDao.getMedicamentosByPersonaId(personaId)
 
@@ -15,8 +21,12 @@ class MedicamentoRepository(private val medicamentoDao: MedicamentoDao) {
     fun getMedicamentosWithPersona(personaId: Int): Flow<List<MedicamentoWithPersona>> =
         medicamentoDao.getMedicamentosWithPersona(personaId)
 
-    suspend fun saveMedicamento(medicamento: MedicamentoEntity): Long =
-        medicamentoDao.insertMedicamento(medicamento)
+    suspend fun saveMedicamento(medicamento: MedicamentoEntity): Long {
+        val id = medicamentoDao.insertMedicamento(medicamento)
+        alarmService.programarAlarma(medicamento.copy(id = id.toInt()))
+        return id
+    }
+
 
     suspend fun updateMedicamento(medicamento: MedicamentoEntity) =
         medicamentoDao.updateMedicamento(medicamento)

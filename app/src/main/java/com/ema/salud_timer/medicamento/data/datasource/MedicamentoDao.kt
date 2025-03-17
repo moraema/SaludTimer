@@ -28,4 +28,5 @@ interface MedicamentoDao {
     @Transaction
     @Query("SELECT * FROM medicamentos WHERE personaId = :personaId")
     fun getMedicamentosWithPersona(personaId: Int): Flow<List<MedicamentoWithPersona>>
+
 }
