@@ -40,8 +40,10 @@ class AlarmService @Inject constructor(private val context: Context) {
                 val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
                 val horaInicioDate = sdf.parse(medicamento.horaInicio)
                 if (horaInicioDate != null) {
-                    set(Calendar.HOUR_OF_DAY, horaInicioDate.hours)
-                    set(Calendar.MINUTE, horaInicioDate.minutes)
+                    val tempCalendar = Calendar.getInstance()
+                    tempCalendar.time = horaInicioDate
+                    set(Calendar.HOUR_OF_DAY, tempCalendar.get(Calendar.HOUR_OF_DAY))
+                    set(Calendar.MINUTE, tempCalendar.get(Calendar.MINUTE))
                     set(Calendar.SECOND, 0)
                 }
             }
@@ -60,8 +62,10 @@ class AlarmService @Inject constructor(private val context: Context) {
             val horaFijaDate = sdf.parse(medicamento.horaFija)
 
             if (horaFijaDate != null) {
-                calendar.set(Calendar.HOUR_OF_DAY, horaFijaDate.hours)
-                calendar.set(Calendar.MINUTE, horaFijaDate.minutes)
+                val tempCalendar = Calendar.getInstance()
+                tempCalendar.time = horaFijaDate
+                calendar.set(Calendar.HOUR_OF_DAY, tempCalendar.get(Calendar.HOUR_OF_DAY))
+                calendar.set(Calendar.MINUTE, tempCalendar.get(Calendar.MINUTE))
                 calendar.set(Calendar.SECOND, 0)
 
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pendingIntent)
